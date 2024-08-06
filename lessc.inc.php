@@ -64,6 +64,21 @@ class lessc {
     protected $sourceLoc = null;
 
     static protected $nextImportId = 0; // uniquely identify imports
+    
+    protected $formatter = null;
+    protected $formatterName = null;
+    protected $count = null;
+    protected $line = null;
+    protected $env = null;
+    protected $buffer = null;
+    protected $seenComments = null;
+    protected $inExp = null;
+    protected $lessc = null;
+    protected $sourceName = null;
+    protected $writeComments = null;
+    protected $eatWhiteDefault = null;
+    protected $parser = null;
+    protected $scope = null;
 
     // attempts to find the path of an import url, returns null for css files
     protected function findImport($url) {
@@ -1363,7 +1378,7 @@ class lessc {
                     $name = $name . ": ";
                 }
 
-                $this->throwError("${name}expecting $expectedArgs arguments, got $numValues");
+                $this->throwError("{$name}expecting $expectedArgs arguments, got $numValues");
             }
 
             return $values;
@@ -1669,7 +1684,7 @@ class lessc {
                 $width = strlen($colorStr) == 3 ? 16 : 256;
 
                 for ($i = 3; $i > 0; $i--) { // 3 2 1
-                    $t = $num % $width;
+                    $t = (int)$num % $width;
                     $num /= $width;
 
                     $c[$i] = $t * (256/$width) + $t * floor(16/$width);
@@ -1745,7 +1760,7 @@ class lessc {
         }
 
         // type based operators
-        $fname = "op_${ltype}_${rtype}";
+        $fname = "op_{$ltype}_{$rtype}";
         if (is_callable(array($this, $fname))) {
             $out = $this->$fname($op, $left, $right);
             if (!is_null($out)) return $out;
@@ -2424,6 +2439,19 @@ class lessc_parser {
 
     // caches preg escaped literals
     static protected $literalCache = array();
+
+    protected $formatter = null;
+    protected $formatterName = null;
+    protected $count = null;
+    protected $line = null;
+    protected $env = null;
+    protected $buffer = null;
+    protected $seenComments = null;
+    protected $inExp = null;
+    protected $lessc = null;
+    protected $sourceName = null;
+    public $writeComments = null;
+    protected $eatWhiteDefault = null;
 
     public function __construct($lessc, $sourceName = null) {
         $this->eatWhiteDefault = true;
@@ -3605,7 +3633,7 @@ class lessc_parser {
         if ($eatWhitespace === null) $eatWhitespace = $this->eatWhiteDefault;
 
         $r = '/'.$regex.($eatWhitespace && !$this->writeComments ? '\s*' : '').'/Ais';
-        if (preg_match($r, $this->buffer, $out, null, $this->count)) {
+        if (preg_match($r, $this->buffer, $out, 0, $this->count)) {
             $this->count += strlen($out[0]);
             if ($eatWhitespace && $this->writeComments) $this->whitespace();
             return true;
@@ -3636,7 +3664,7 @@ class lessc_parser {
     protected function peek($regex, &$out = null, $from=null) {
         if (is_null($from)) $from = $this->count;
         $r = '/'.$regex.'/Ais';
-        $result = preg_match($r, $this->buffer, $out, null, $from);
+        $result = preg_match($r, $this->buffer, $out, 0, $from);
 
         return $result;
     }
@@ -3866,6 +3894,8 @@ class lessc_formatter_compressed extends lessc_formatter_classic {
     public $assignSeparator = ":";
     public $break = "";
     public $compressColors = true;
+
+    public $indentLevel;
 
     public function indentStr($n = 0) {
         return "";
